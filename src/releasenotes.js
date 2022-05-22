@@ -6,6 +6,9 @@ import React from "react";
 function Release() {
     return (
         <div>
+            <h3 style={{fontSize: 15}}> July 30, 2020 </h3>
+            <body style={{textAlign: 'center'}}> Added upcoming games for Serie A, since only that league still has games. Completely built page. Base complete. </body>
+            <p/>
             <h3 style={{fontSize: 15}}> July 26, 2020 </h3>
             <body style={{textAlign: 'center'}}> Added table with live data. Added other extra pages as well. </body>
             <p/>

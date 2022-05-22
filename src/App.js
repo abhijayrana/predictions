@@ -5,6 +5,9 @@ import { Component } from 'react';
 import * as ReactBootStrap from "react-bootstrap"
 import 'bootstrap/dist/css/bootstrap.min.css';
 import Release from "./releasenotes";
+import ReactPlayer from 'react-player'
+
+
 
 
 
@@ -13,7 +16,8 @@ import Release from "./releasenotes";
 class App extends Component{
         constructor(props){
         super(props)
-        this.state = {teamName: "", teamTwo: "", screen: "0", teams: [], apiteam: '', teamIndex: '', teamListNames: [
+        this.state = {teamName: "", teamTwo: "", screen: "0", teams: [], apiteam: '', teamIndex: '', teamListNames: 
+        [
             "Arsenal FC", 
             "Aston Villa FC", 
             "AFC Bournemouth", 
@@ -34,11 +38,11 @@ class App extends Component{
             "Watford FC", 
             "West Ham United FC", 
             "Wolverhampton Wanderers FC"
-            ], selectedTeam: '', };
+            ], selectedTeam: '', games: [], today: '', saData: [], leagueTeams: [], tableData: []};
             this.handleSelect = this.handleSelect.bind(this);
 
     }
-        componentDidMount = async () => {    
+        componentDidMount = async () => {
             fetch("http://api.football-data.org/v2/competitions/PL/standings", {
                 method: 'GET',
                 headers: {
@@ -53,39 +57,114 @@ class App extends Component{
                 console.log("Actual Resp ::");
                 console.log(responseText);
                 this.setState({teams: responseText.standings});
-                
                 console.log("Standings:: ")
-                
                 console.log(this.state.teams);
                 
-                let x = this.state.teamIndex;
+                this.setState({leagueTeams: 
+                    [{id: '', value: '', teamName: 'Select a Team', win: '', loss: '', draw: '', points: '', gd: '', played: '', position: ''}]
+                })
                 
-                for(var key2 in this.state.teams[0].table) {
-                    if(this.state.teams[0].table[key2].team.name == x){
-                        console.log("It worked." + key2)
-                    }
-        
+                let teamIndex = 0;
+
+
+                
+                let tempdata = this.state.teams[0].table
+                
+                for(var key2 in tempdata.sort((a, b) => a.team.name > b.team.name ? 1 : -1)) {
                     
+                    teamIndex = parseInt(key2) + 1;
                     
-                    console.log("Team Name: " + this.state.teams[0].table[key2].team.name
-                            + ", position: " + this.state.teams[0].table[key2].position 
-                            + ", won: " + this.state.teams[0].table[key2].won 
-                            + ", lost: " + this.state.teams[0].table[key2].lost 
-                               
-                               )
+                  this.setState({
+                          leagueTeams: this.state.leagueTeams.concat({
+                          id: tempdata[key2].team.id,
+                          value: teamIndex,
+                          teamName: tempdata[key2].team.name,
+                          win: tempdata[key2].won,
+                          loss: tempdata[key2].lost,
+                          draw: tempdata[key2].draw,
+                          points: tempdata[key2].points,
+                          gd: tempdata[key2].goalDifference,
+                          played: tempdata[key2].playedGames,
+                          url: tempdata[key2].team.crestUrl,
+                          position: tempdata[key2].position
+                      })
+                  })
                 }
                 
             })
+            
+            //other fetch ${this.state.today}
+            //date stuff 
+            var date = ''
+            if (new Date().getDate() < 10) {
+                date = '0' + new Date().getDate(); //Current Date
+            } else if (new Date().getDate() >= 10) {
+                date = new Date().getDate()
+            }
+            var month = ''
+            if (new Date().getMonth() < 10) {
+                month = '0' + (new Date().getMonth() + 1); 
+            } else if (new Date().getMonth() >= 10) {
+                month = new Date().getMonth() + 1
+            }
+            var year = new Date().getFullYear()
+           
+            this.setState({today: year+'-'+month+'-'+date})
+            
+            let variableSeven = this.state.today
+             fetch(`http://api.football-data.org/v2/competitions/PL/matches/?dateFrom=2020-07-20&dateTo=2020-08-07`, {
+                method: 'GET',
+                headers: {
+                    'X-Auth-Token': '3163ef1e43724739b183eae4cc97ea95'
+                    
+                }
+            })
+            
+            .then((response) => response.json())
+            
+            .then((responseText) => {
+                console.log("Actual Resp from second api::");
+                console.log(responseText);
+                this.setState({games: responseText.matches});
+    
+                
+            })
+            //thirdfetch
+            fetch("http://api.football-data.org/v2/competitions/SA/standings", {
+                method: 'GET',
+                headers: {
+                    'X-Auth-Token': '3163ef1e43724739b183eae4cc97ea95'
+                    
+                }
+            })
+            
+            .then((response) => response.json())
+            
+            .then((responseText) => {
+                console.log("Actual Resp from third api::");
+                console.log(responseText);
+                this.setState({saData: responseText.standings});
+    
+                
+            })
         }
+        
+        
 
         handleSelect = (event) => {
             event.preventDefault();
             this.setState({teamName: event.target.value});
+            console.log(this.state.teamName)
+//            console.log(this.state.leagueTeams[this.state.teamName].teamName)
             this.setState({selectedTeam: this.state.teamListNames[this.state.teamName]})
-            
+
         }
         handleOtherSelect = (event) => {
             this.setState({teamTwo: event.target.value});
+        }
+        
+        handleRoll = () => {
+            this.setState({isPlaying: "true"})
         }
         
         resetDropdown = () => {
@@ -109,199 +188,138 @@ class App extends Component{
         //all return functions
         returnTeam = () => {
             if(this.state.teamName && this.state.screen == "0") {
-            let selectedTeamName = this.state.teamListNames[this.state.teamName]
-            for(var key2 in this.state.teams[0].table) {
-                    if(this.state.teams[0].table[key2].team.name == selectedTeamName){
-                        return this.state.teams[0].table[key2].team.name
-                    }
-        }
+            return this.state.leagueTeams[this.state.teamName].teamName
             }
             
     }
         returnTeamTwo = () => {
             if(this.state.teamTwo && this.state.screen == "0") {
-            let selectedTeamName = this.state.teamListNames[this.state.teamTwo]
-            for(var key2 in this.state.teams[0].table) {
-                    if(this.state.teams[0].table[key2].team.name == selectedTeamName){
-                        return this.state.teams[0].table[key2].team.name
-                    }
-        }
+            return this.state.leagueTeams[this.state.teamTwo].teamName
             }
             
     }
         returnPoints = () => {
             if(this.state.teamName && this.state.screen == "0") {
-            let selectedTeamName = this.state.teamListNames[this.state.teamName]
-            for(var key2 in this.state.teams[0].table) {
-                    if(this.state.teams[0].table[key2].team.name == selectedTeamName){
-                        return this.state.teams[0].table[key2].points
-                    }
-        }
+                return this.state.leagueTeams[this.state.teamName].points
             }
             
     }
         returnPointsTwo = () => {
             if(this.state.teamTwo && this.state.screen == "0") {
-            let selectedTeamName = this.state.teamListNames[this.state.teamTwo]
-            for(var key2 in this.state.teams[0].table) {
-                    if(this.state.teams[0].table[key2].team.name == selectedTeamName){
-                        return this.state.teams[0].table[key2].points
-                    }
-        }
+                return this.state.leagueTeams[this.state.teamTwo].points
             }
             
     }
         returnWins = () => {
             if(this.state.teamName && this.state.screen == "0") {
-            let selectedTeamName = this.state.teamListNames[this.state.teamName]
-            for(var key2 in this.state.teams[0].table) {
-                    if(this.state.teams[0].table[key2].team.name == selectedTeamName){
-                        return this.state.teams[0].table[key2].won
-                    }
-        }
+                return this.state.leagueTeams[this.state.teamName].win
             }
             
     }
         returnWinsTwo = () => {
             if(this.state.teamTwo && this.state.screen == "0") {
-            let selectedTeamName = this.state.teamListNames[this.state.teamTwo]
-            for(var key2 in this.state.teams[0].table) {
-                    if(this.state.teams[0].table[key2].team.name == selectedTeamName){
-                        return this.state.teams[0].table[key2].won
-                    }
-        }
+                return this.state.leagueTeams[this.state.teamTwo].win
             }
             
     } 
         returnLoss = () => {
             if(this.state.teamName && this.state.screen == "0") {
-            let selectedTeamName = this.state.teamListNames[this.state.teamName]
-            for(var key2 in this.state.teams[0].table) {
-                    if(this.state.teams[0].table[key2].team.name == selectedTeamName){
-                        return this.state.teams[0].table[key2].lost
-                    }
-        }
+                return this.state.leagueTeams[this.state.teamName].loss
             }
             
     }
         returnLossTwo = () => {
             if(this.state.teamTwo && this.state.screen == "0") {
-            let selectedTeamName = this.state.teamListNames[this.state.teamTwo]
-            for(var key2 in this.state.teams[0].table) {
-                    if(this.state.teams[0].table[key2].team.name == selectedTeamName){
-                        return this.state.teams[0].table[key2].lost
-                    }
-        }
+                return this.state.leagueTeams[this.state.teamTwo].loss
             }
             
     }
         returnDraws = () => {
             if(this.state.teamName && this.state.screen == "0") {
-            let selectedTeamName = this.state.teamListNames[this.state.teamName]
-            for(var key2 in this.state.teams[0].table) {
-                    if(this.state.teams[0].table[key2].team.name == selectedTeamName){
-                        return this.state.teams[0].table[key2].draw
-                    }
-        }
+                return this.state.leagueTeams[this.state.teamName].draw
             }
             
     }
         returnDrawsTwo = () => {
             if(this.state.teamTwo && this.state.screen == "0") {
-            let selectedTeamName = this.state.teamListNames[this.state.teamTwo]
-            for(var key2 in this.state.teams[0].table) {
-                    if(this.state.teams[0].table[key2].team.name == selectedTeamName){
-                        return this.state.teams[0].table[key2].draw
-                    }
-        }
+                return this.state.leagueTeams[this.state.teamTwo].draw
             }
             
     }
         returnPosition = () => {
             if(this.state.teamName && this.state.screen == "0") {
-            let selectedTeamName = this.state.teamListNames[this.state.teamName]
-            for(var key2 in this.state.teams[0].table) {
-                    if(this.state.teams[0].table[key2].team.name == selectedTeamName){
-                        return this.state.teams[0].table[key2].position
-                    }
-        }
+                return this.state.leagueTeams[this.state.teamName].position
             }
             
     }
         returnPositionTwo = () => {
             if(this.state.teamTwo && this.state.screen == "0") {
-            let selectedTeamName = this.state.teamListNames[this.state.teamTwo]
-            for(var key2 in this.state.teams[0].table) {
-                    if(this.state.teams[0].table[key2].team.name == selectedTeamName){
-                        return this.state.teams[0].table[key2].position
-                    }
-        }
+                return this.state.leagueTeams[this.state.teamTwo].position
             }
             
     }
         returnPlayed = () => {
             if(this.state.teamName && this.state.screen == "0") {
-            let selectedTeamName = this.state.teamListNames[this.state.teamName]
-            for(var key2 in this.state.teams[0].table) {
-                    if(this.state.teams[0].table[key2].team.name == selectedTeamName){
-                        return this.state.teams[0].table[key2].playedGames
-                    }
-        }
+                return this.state.leagueTeams[this.state.teamName].played
             }
             
     }
         returnPlayedTwo = () => {
             if(this.state.teamTwo && this.state.screen == "0") {
-            let selectedTeamName = this.state.teamListNames[this.state.teamTwo]
-            for(var key2 in this.state.teams[0].table) {
-                    if(this.state.teams[0].table[key2].team.name == selectedTeamName){
-                        return this.state.teams[0].table[key2].playedGames
-                    }
-        }
+                return this.state.leagueTeams[this.state.teamTwo].played
             }
             
     }
         returngd = () => {
             if(this.state.teamName && this.state.screen == "0") {
-            let selectedTeamName = this.state.teamListNames[this.state.teamName]
-            for(var key2 in this.state.teams[0].table) {
-                    if(this.state.teams[0].table[key2].team.name == selectedTeamName){
-                        return this.state.teams[0].table[key2].goalDifference
-                    }
-        }
+                return this.state.leagueTeams[this.state.teamName].gd
             }
             
     }
         returngdTwo = () => {
             if(this.state.teamTwo && this.state.screen == "0") {
-            let selectedTeamName = this.state.teamListNames[this.state.teamTwo]
-            for(var key2 in this.state.teams[0].table) {
-                    if(this.state.teams[0].table[key2].team.name == selectedTeamName){
-                        return this.state.teams[0].table[key2].goalDifference
-                    }
-        }
+                return this.state.leagueTeams[this.state.teamTwo].gd
             }
             
     }
         algorithm = () => {
              if(this.state.teamName && this.state.screen == "0") {
             let selectedTeamName = this.state.teamListNames[this.state.teamName]
+            let pointCount = ''
             for(var key2 in this.state.teams[0].table) {
                     if(this.state.teams[0].table[key2].team.name == selectedTeamName){
-                        return this.state.teams[0].table[key2].points + (this.state.teams[0].table[key2].won - this.state.teams[0].table[key2].lost)
+                        if(this.state.teams[1].table[key2].won>this.state.teams[1].table[key2].lost+this.state.teams[1].table[key2].draw){
+                        pointCount = this.state.teams[0].table[key2].points + (Math.round((this.state.teams[0].table[key2].won - this.state.saData[0].table[key2].lost + this.state.saData[0].table[key2].draw))/5) + 7
+                        }
+                        else if(this.state.teams[1].table[key2].won<this.state.teams[1].table[key2].lost+this.state.teams[1].table[key2].draw){
+                        pointCount = this.state.teams[0].table[key2].points + (Math.round((this.state.teams[0].table[key2].won - this.state.saData[0].table[key2].lost + this.state.saData[0].table[key2].draw))/5) - 7
+                        } else if(this.state.teams[1].table[key2].won==this.state.teams[1].table[key2].lost+this.state.teams[1].table[key2].draw){
+                        pointCount = this.state.teams[0].table[key2].points + (Math.round((this.state.teams[0].table[key2].won - this.state.saData[0].table[key2].lost + this.state.saData[0].table[key2].draw))/5)
+                        }
                     }
         }
+                 return Math.round(pointCount)
             }
             
     } 
         algorithmTwo = () => {
              if(this.state.teamTwo && this.state.screen == "0") {
             let selectedTeamName = this.state.teamListNames[this.state.teamTwo]
+            let otherPointCount = ''
             for(var key2 in this.state.teams[0].table) {
                     if(this.state.teams[0].table[key2].team.name == selectedTeamName){
-                        return this.state.teams[0].table[key2].points + (this.state.teams[0].table[key2].won - this.state.teams[0].table[key2].lost)
+                       if(this.state.teams[2].table[key2].won>this.state.teams[2].table[key2].lost+this.state.teams[2].table[key2].draw){
+                        otherPointCount = this.state.teams[0].table[key2].points + (Math.round((this.state.teams[0].table[key2].won - this.state.saData[0].table[key2].lost + this.state.saData[0].table[key2].draw))/5) + 7
+                        }
+                        else if(this.state.teams[2].table[key2].won<this.state.teams[2].table[key2].lost+this.state.teams[2].table[key2].draw){
+                        otherPointCount = this.state.teams[0].table[key2].points + (Math.round((this.state.teams[0].table[key2].won - this.state.saData[0].table[key2].lost + this.state.saData[0].table[key2].draw))/5) - 7
+                        } else if(this.state.teams[2].table[key2].won==this.state.teams[2].table[key2].lost+this.state.teams[2].table[key2].draw){
+                        otherPointCount = this.state.teams[0].table[key2].points + (Math.round((this.state.teams[0].table[key2].won - this.state.saData[0].table[key2].lost + this.state.saData[0].table[key2].draw))/5)
+                        }
                     }
         }
+                 
+                 return Math.round(otherPointCount)
             }
             
     } 
@@ -316,6 +334,26 @@ class App extends Component{
                 return  (Math.round(100*(100-number)))/100 + '%'
             } 
         }
+        returnImage = () => {
+            if(this.state.teamName && this.state.screen == "0") {
+                return <img 
+                style={{height: 100}}
+                src={this.state.leagueTeams[this.state.teamName].url}
+                alt=""
+                />
+                    }
+        }
+            
+        returnImageTwo = () => {
+            if(this.state.teamTwo && this.state.screen == "0") {
+            return <img 
+                style={{height: 100}}
+                src={this.state.leagueTeams[this.state.teamTwo].url}
+                alt=""
+                />
+            }
+            
+    }
         
         aboutPage = () => {
             this.setState({screen: "3"})
@@ -324,8 +362,109 @@ class App extends Component{
             this.setState({screen: "4"})
         }
        
-
+        upcomingGames = () => {
+            if (this.state.screen == "2") {return this.state.games[0].homeTeam.name
+                }
+        } 
         
+        displayMatch = () => {
+            let tempGames = ''
+            let datevar = ''
+            let isScoreOne = ''
+            let isScoreTwo = ''
+            let completed = ''
+            let vs = 'vs.'
+            let home = ''
+            let away = ''
+            let line = <hr/>;
+            if(this.state.screen == "2") {
+            for (var key2 in this.state.games){
+                
+                
+                
+                if(this.state.games[key2].status == "FINISHED"){
+                    isScoreOne = this.state.games[key2].score.fullTime.homeTeam;
+                    isScoreTwo = this.state.games[key2].score.fullTime.awayTeam;
+                    completed = 'Finished - ';
+                   vs = '-';
+                } 
+                else{
+                    isScoreOne = ''
+                    isScoreTwo = ''
+                    completed = ''
+                    vs = 'vs.'
+                }
+                
+                if(this.state.games[key2].score.winner == "HOME_TEAM"){
+                    home = <text style={{color: "#008000"}}> {this.state.games[key2].homeTeam.name} </text>;
+                    away = <text style={{color: "#8B0000"}}> {this.state.games[key2].awayTeam.name} </text>
+                } else if(this.state.games[key2].score.winner == "AWAY_TEAM"){
+                    home = <text style={{color: "#8B0000"}}> {this.state.games[key2].homeTeam.name} </text>;
+                    away = <text style={{color: "#008000"}}> {this.state.games[key2].awayTeam.name} </text>
+                } else {
+                    home = this.state.games[key2].homeTeam.name
+                    away = this.state.games[key2].awayTeam.name
+                } 
+    
+                let saTeam = ''
+                
+
+                for(var key3 in this.state.saData[0].table) {
+                    if(this.state.saData[0].table[key3].team.name == this.state.games[key2].homeTeam.name){
+                        if(this.state.saData[1].table[key3].won>this.state.saData[1].table[key3].lost+this.state.saData[1].table[key3].draw){
+                        saTeam = this.state.saData[0].table[key3].points + (Math.round((this.state.saData[0].table[key3].won - this.state.saData[0].table[key3].lost + this.state.saData[0].table[key3].draw))/5) + 7
+                        }
+                        else if(this.state.saData[1].table[key3].won<this.state.saData[1].table[key3].lost+this.state.saData[1].table[key3].draw){
+                        saTeam = this.state.saData[0].table[key3].points + (Math.round((this.state.saData[0].table[key3].won - this.state.saData[0].table[key3].lost + this.state.saData[0].table[key3].draw))/5) - 7
+                        } else if(this.state.saData[1].table[key3].won==this.state.saData[1].table[key3].lost+this.state.saData[1].table[key3].draw){
+                        saTeam = this.state.saData[0].table[key3].points + (Math.round((this.state.saData[0].table[key3].won - this.state.saData[0].table[key3].lost + this.state.saData[0].table[key3].draw))/5)
+                        }
+                    }
+            }   
+            saTeam = (Math.round(saTeam *10)/10)
+
+                let othersaTeam = 0
+                for(var key3 in this.state.saData[0].table) {
+                    if(this.state.saData[0].table[key3].team.name == this.state.games[key2].awayTeam.name){
+                        if(this.state.saData[2].table[key3].won>this.state.saData[2].table[key3].lost+this.state.saData[2].table[key3].draw){
+                        othersaTeam = this.state.saData[0].table[key3].points + (Math.round((this.state.saData[0].table[key3].won - this.state.saData[0].table[key3].lost + this.state.saData[0].table[key3].draw))/5) + 7
+                        }
+                        else if(this.state.saData[2].table[key3].won<this.state.saData[2].table[key3].lost+this.state.saData[2].table[key3].draw){
+                        othersaTeam = this.state.saData[0].table[key3].points + (Math.round((this.state.saData[0].table[key3].won - this.state.saData[0].table[key3].lost + this.state.saData[0].table[key3].draw))/5) - 7
+                        } else if(this.state.saData[2].table[key3].won==this.state.saData[2].table[key3].lost+this.state.saData[2].table[key3].draw){
+                        othersaTeam = this.state.saData[0].table[key3].points + (Math.round((this.state.saData[0].table[key3].won - this.state.saData[0].table[key3].lost + this.state.saData[0].table[key3].draw))/5)
+                        }
+                    }
+            }
+            othersaTeam = (Math.round(othersaTeam *10)/10)
+
+                let percentUno = (Math.floor((saTeam/(saTeam + othersaTeam))*10000))/100 + '%'
+                let number = (Math.floor((saTeam/(saTeam + othersaTeam))*10000))/100
+                let percentDos = (Math.round(100*(100-number)))/100 + '%'
+                    
+                datevar = this.state.games[key2].utcDate.split("T")[0]
+                
+               tempGames = <body style={{textAlign: "center",}}> {tempGames}{line}<b>{home} </b>  {isScoreOne} {vs} {isScoreTwo}<b> {away} </b> <p/>
+                   {saTeam} : Team Score : {othersaTeam} <p/>
+                   <b>{percentUno}</b> : Win Percentage <b>{percentDos}</b>
+
+                <p/>
+                   {completed} &nbsp;
+                {datevar.split("-")[1] + "-" + datevar.split("-")[2] + "-" + datevar.split("-")[0]}
+                <p/>
+                   </body>
+
+                
+            }
+            return tempGames
+        }
+    }
+    
+        yeet = () => {
+            if(this.state.teamName){
+            console.log(this.state.leagueTeams[this.state.teamName].teamName)
+            }
+        }
         
         
 render(){  
@@ -376,11 +515,12 @@ render(){
     width: "100%",
 }
 
-const phantom = {
+    const phantom = {
   display: 'block',
   padding: '20px',
   height: '60px',
   width: '100%',
+backgroundColor: "white"
 }
     
     const teamList = [
@@ -408,15 +548,15 @@ const phantom = {
         'Select another team.'
     ];
     
-    let hello = 'Yo'
+    //table - standings
     let players = []
     if (this.state.teamName) {
     players = [
-        {position: "1", name: this.state.teams[0].table[0].team.name, points: this.state.teams[0].table[0].points, wins: this.state.teams[0].table[0].won, losses: this.state.teams[0].table[0].lost, ties: this.state.teams[0].table[0].draw, gd: this.state.teams[0].table[0].goalDifference},
-        {position: "2", name: this.state.teams[0].table[1].team.name, points: this.state.teams[0].table[1].points, wins: this.state.teams[0].table[1].won, losses: this.state.teams[0].table[1].lost, ties: this.state.teams[0].table[1].draw, gd: this.state.teams[0].table[1].goalDifference},
-        {position: "3", name: this.state.teams[0].table[2].team.name, points: this.state.teams[0].table[2].points, wins: this.state.teams[0].table[2].won, losses: this.state.teams[0].table[2].lost, ties: this.state.teams[0].table[2].draw, gd: this.state.teams[0].table[2].goalDifference},
-        {position: "4", name: this.state.teams[0].table[3].team.name, points: this.state.teams[0].table[3].points, wins: this.state.teams[0].table[3].won, losses: this.state.teams[0].table[3].lost, ties: this.state.teams[0].table[3].draw, gd: this.state.teams[0].table[3].goalDifference},
-        {position: "5", name: this.state.teams[0].table[4].team.name, points: this.state.teams[0].table[4].points, wins: this.state.teams[0].table[4].won, losses: this.state.teams[0].table[4].lost, ties: this.state.teams[0].table[4].draw, gd: this.state.teams[0].table[4].goalDifference},
+        {position: "1 - Winner", name: this.state.teams[0].table[0].team.name, points: this.state.teams[0].table[0].points, wins: this.state.teams[0].table[0].won, losses: this.state.teams[0].table[0].lost, ties: this.state.teams[0].table[0].draw, gd: this.state.teams[0].table[0].goalDifference},
+        {position: "2 - Champions League", name: this.state.teams[0].table[1].team.name, points: this.state.teams[0].table[1].points, wins: this.state.teams[0].table[1].won, losses: this.state.teams[0].table[1].lost, ties: this.state.teams[0].table[1].draw, gd: this.state.teams[0].table[1].goalDifference},
+        {position: "3 - Champions League", name: this.state.teams[0].table[2].team.name, points: this.state.teams[0].table[2].points, wins: this.state.teams[0].table[2].won, losses: this.state.teams[0].table[2].lost, ties: this.state.teams[0].table[2].draw, gd: this.state.teams[0].table[2].goalDifference},
+        {position: "4 - Champions League", name: this.state.teams[0].table[3].team.name, points: this.state.teams[0].table[3].points, wins: this.state.teams[0].table[3].won, losses: this.state.teams[0].table[3].lost, ties: this.state.teams[0].table[3].draw, gd: this.state.teams[0].table[3].goalDifference},
+        {position: "5 - Europa League", name: this.state.teams[0].table[4].team.name, points: this.state.teams[0].table[4].points, wins: this.state.teams[0].table[4].won, losses: this.state.teams[0].table[4].lost, ties: this.state.teams[0].table[4].draw, gd: this.state.teams[0].table[4].goalDifference},
         {position: "6", name: this.state.teams[0].table[5].team.name, points: this.state.teams[0].table[5].points, wins: this.state.teams[0].table[5].won, losses: this.state.teams[0].table[5].lost, ties: this.state.teams[0].table[5].draw, gd: this.state.teams[0].table[5].goalDifference},
         {position: "7", name: this.state.teams[0].table[6].team.name, points: this.state.teams[0].table[6].points, wins: this.state.teams[0].table[6].won, losses: this.state.teams[0].table[6].lost, ties: this.state.teams[0].table[6].draw, gd: this.state.teams[0].table[6].goalDifference},
         {position: "8", name: this.state.teams[0].table[7].team.name, points: this.state.teams[0].table[7].points, wins: this.state.teams[0].table[7].won, losses: this.state.teams[0].table[7].lost, ties: this.state.teams[0].table[7].draw, gd: this.state.teams[0].table[7].goalDifference},
@@ -429,17 +569,16 @@ const phantom = {
         {position: "15", name: this.state.teams[0].table[14].team.name, points: this.state.teams[0].table[14].points, wins: this.state.teams[0].table[14].won, losses: this.state.teams[0].table[14].lost, ties: this.state.teams[0].table[14].draw, gd: this.state.teams[0].table[14].goalDifference},
         {position: "16", name: this.state.teams[0].table[15].team.name, points: this.state.teams[0].table[15].points, wins: this.state.teams[0].table[15].won, losses: this.state.teams[0].table[15].lost, ties: this.state.teams[0].table[15].draw, gd: this.state.teams[0].table[15].goalDifference},
         {position: "17", name: this.state.teams[0].table[16].team.name, points: this.state.teams[0].table[16].points, wins: this.state.teams[0].table[16].won, losses: this.state.teams[0].table[16].lost, ties: this.state.teams[0].table[16].draw, gd: this.state.teams[0].table[16].goalDifference},
-        {position: "18", name: this.state.teams[0].table[17].team.name, points: this.state.teams[0].table[17].points, wins: this.state.teams[0].table[17].won, losses: this.state.teams[0].table[17].lost, ties: this.state.teams[0].table[17].draw, gd: this.state.teams[0].table[17].goalDifference},
-        {position: "19", name: this.state.teams[0].table[18].team.name, points: this.state.teams[0].table[18].points, wins: this.state.teams[0].table[18].won, losses: this.state.teams[0].table[18].lost, ties: this.state.teams[0].table[18].draw, gd: this.state.teams[0].table[18].goalDifference},
-        {position: "20", name: this.state.teams[0].table[19].team.name, points: this.state.teams[0].table[19].points, wins: this.state.teams[0].table[19].won, losses: this.state.teams[0].table[19].lost, ties: this.state.teams[0].table[19].draw, gd: this.state.teams[0].table[19].goalDifference},
+        {position: "18 - Relegation", name: this.state.teams[0].table[17].team.name, points: this.state.teams[0].table[17].points, wins: this.state.teams[0].table[17].won, losses: this.state.teams[0].table[17].lost, ties: this.state.teams[0].table[17].draw, gd: this.state.teams[0].table[17].goalDifference},
+        {position: "19  -Relegation", name: this.state.teams[0].table[18].team.name, points: this.state.teams[0].table[18].points, wins: this.state.teams[0].table[18].won, losses: this.state.teams[0].table[18].lost, ties: this.state.teams[0].table[18].draw, gd: this.state.teams[0].table[18].goalDifference},
+        {position: "20 - Relegation", name: this.state.teams[0].table[19].team.name, points: this.state.teams[0].table[19].points, wins: this.state.teams[0].table[19].won, losses: this.state.teams[0].table[19].lost, ties: this.state.teams[0].table[19].draw, gd: this.state.teams[0].table[19].goalDifference},
 
     ]}
-    
     const renderPlayer = (player, index) => {
         return (
         <tr key={index}>
-            <td>{player.name} </td>
-            <td> {player.position}</td>
+            <td>{player.position} </td>
+            <td> {player.name}</td>
             <td>{player.wins} </td>
             <td>{player.losses}</td>
             <td>{player.ties} </td>
@@ -451,23 +590,23 @@ const phantom = {
     
     //texts - positionText, scoreText, etc.
     let positionText = ''
-    if (this.state.screen == "0") {positionText = '- Position -'}
+    if (this.state.screen == "0") {positionText = ' : Position : '}
     let scoreText = ''
-    if (this.state.screen == "0") {scoreText = '- Team Rating -'}
+    if (this.state.screen == "0") {scoreText = ' : Team Rating : '}
     let pointText = ''
-    if (this.state.screen == "0") {pointText = '- Points -'}
+    if (this.state.screen == "0") {pointText = ': Points : '}
     let winText = ''
-    if (this.state.screen == "0") {winText = '- Wins -'}
+    if (this.state.screen == "0") {winText = ' : Wins : '}
     let lossText = ''
-    if (this.state.screen == "0") {lossText = '- Losses -'}
+    if (this.state.screen == "0") {lossText = ' : Losses : '}
     let drawText = ''
-    if (this.state.screen == "0") {drawText = '- Draws -'}
+    if (this.state.screen == "0") {drawText = ' : Draws : '}
     let playedText = ''
-    if (this.state.screen == "0") {playedText = '- Played -'}
+    if (this.state.screen == "0") {playedText = ' : Played : '}
     let gdText = ''
-    if (this.state.screen == "0") {gdText = '- Goal Difference -'}
+    if (this.state.screen == "0") {gdText = ' : Goal Difference : '}
     let percentText = ''
-    if (this.state.screen == "0") {percentText = '- Win Percentage -'}
+    if (this.state.screen == "0") {percentText = ' : Win Percentage : '}
     let resetButton = ''
     
     if (this.state.screen == "0") {
@@ -476,16 +615,16 @@ const phantom = {
     
     //text code
     let text = ''
-        if(this.algorithm() > this.algorithmTwo() && teamList[this.state.teamName] != 'Select a team.' && teamList[this.state.teamTwo] != 'Select another team.' && this.state.screen == "0") {
+        if(this.algorithm() > this.algorithmTwo() && teamList[this.state.teamName] != 'Select a team.' && teamList[this.state.teamTwo] != 'Select another team.' && this.state.screen == "0" && this.state.teamName != this.state.teamTwo) {
             text= teamList[this.state.teamName] + ' has a team rating of ' + this.algorithm() + ' and ' + teamList[this.state.teamTwo] + ' has a team rating of ' + this.algorithmTwo() + ', so ' + teamList[this.state.teamName] + ' has a ' + this.percent() + ' chance of winning.'
         } 
-        else if(this.algorithm() < this.algorithmTwo() && teamList[this.state.teamName] != 'Select a team.' && teamList[this.state.teamTwo] != 'Select another team.' && this.state.screen == "0") {
+        else if(this.algorithm() < this.algorithmTwo() && teamList[this.state.teamName] != 'Select a team.' && teamList[this.state.teamTwo] != 'Select another team.' && this.state.screen == "0" && this.state.teamName != this.state.teamTwo) {
             text= teamList[this.state.teamTwo] + ' has a team rating of ' + this.algorithmTwo() + ' and ' + teamList[this.state.teamName] + ' has a team rating of ' + this.algorithm() + ', so ' + teamList[this.state.teamTwo] + ' has a ' + this.percentTwo() + ' chance of winning.'
         } 
-        else if(this.algorithm() == this.algorithmTwo() && teamList[this.state.teamName] != teamList[this.state.teamTwo] && teamList[this.state.teamName] != 'Select a team.' && teamList[this.state.teamTwo] != 'Select another team.' && this.state.screen == "0") {
+        else if(this.algorithm() == this.algorithmTwo() && teamList[this.state.teamName] != teamList[this.state.teamTwo] && teamList[this.state.teamName] != 'Select a team.' && teamList[this.state.teamTwo] != 'Select another team.' && this.state.screen == "0" && this.state.teamName != this.state.teamTwo) {
             text= teamList[this.state.teamName] + ' and ' + teamList[this.state.teamTwo] + ' have equal team ratings, ' + this.algorithm() + ' and ' + this.algorithmTwo() + ', so they will tie.'
         } 
-        else if(teamList[this.state.teamName] == teamList[this.state.teamTwo] && teamList[this.state.teamName] != 'Select a team.' && teamList[this.state.teamTwo] != 'Select another team.' && this.state.screen == "0" && this.state.teamName != "") {
+        else if(teamList[this.state.teamName] == teamList[this.state.teamTwo] && teamList[this.state.teamName] != 'Select a team.' && teamList[this.state.teamTwo] != 'Select another team.' && this.state.screen == "0" && this.state.teamName != "" ) {
             text='Please choose two different teams!'
         } else {
             text=''
@@ -500,123 +639,44 @@ const phantom = {
             teamTwo = teamList[this.state.teamTwo]
         }
     
-    let divide = <text style={divider}> and </text>
-        
-    let imageOne=''
-    if(this.state.teamName=="0"&& this.state.screen == "0"){imageOne=require("./arsenal.jpeg")}
-    if(this.state.teamName=="1"&& this.state.screen == "0"){imageOne=require("./villa.png")}
-    if(this.state.teamName=="2"&& this.state.screen == "0"){imageOne=require("./bournemouth.png")}
-    if(this.state.teamName=="3"&& this.state.screen == "0"){imageOne=require("./brighton.png")}
-    if(this.state.teamName=="4"&& this.state.screen == "0"){imageOne=require("./burnley.jpeg")}
-    if(this.state.teamName=="5"&& this.state.screen == "0"){imageOne=require("./chelsea.png")}
-    if(this.state.teamName=="6"&& this.state.screen == "0"){imageOne=require("./palace.png")}
-    if(this.state.teamName=="7"&& this.state.screen == "0"){imageOne=require("./everton.png")}
-    if(this.state.teamName=="8"&& this.state.screen == "0"){imageOne=require("./leicester.png")}
-    if(this.state.teamName=="9"&& this.state.screen == "0"){imageOne=require("./liverpool.jpeg")}
-    if(this.state.teamName=="10"&& this.state.screen == "0"){imageOne=require("./city.png")}
-    if(this.state.teamName=="11"&& this.state.screen == "0"){imageOne=require("./united.png")}
-    if(this.state.teamName=="12"&& this.state.screen == "0"){imageOne=require("./newcastle.png")}
-    if(this.state.teamName=="13"&& this.state.screen == "0"){imageOne=require("./norwich.png")}
-    if(this.state.teamName=="14"&& this.state.screen == "0"){imageOne=require("./sheff.png")}
-    if(this.state.teamName=="15"&& this.state.screen == "0"){imageOne=require("./southampton.png")}
-    if(this.state.teamName=="16"&& this.state.screen == "0"){imageOne=require("./tottenham.jpeg")}
-    if(this.state.teamName=="17"&& this.state.screen == "0"){imageOne=require("./watford.png")}
-    if(this.state.teamName=="18"&& this.state.screen == "0"){imageOne=require("./westham.png")}
-    if(this.state.teamName=="19"&& this.state.screen == "0"){imageOne=require("./wolves.png")}
-    
-    let imageTwo=''
-    if(this.state.teamTwo=="0"&& this.state.screen == "0"){imageTwo=require("./arsenal.jpeg")}
-    if(this.state.teamTwo=="1"&& this.state.screen == "0"){imageTwo=require("./villa.png")}
-    if(this.state.teamTwo=="2"&& this.state.screen == "0"){imageTwo=require("./bournemouth.png")}
-    if(this.state.teamTwo=="3"&& this.state.screen == "0"){imageTwo=require("./brighton.png")}
-    if(this.state.teamTwo=="4"&& this.state.screen == "0"){imageTwo=require("./burnley.jpeg")}
-    if(this.state.teamTwo=="5"&& this.state.screen == "0"){imageTwo=require("./chelsea.png")}
-    if(this.state.teamTwo=="6"&& this.state.screen == "0"){imageTwo=require("./palace.png")}
-    if(this.state.teamTwo=="7"&& this.state.screen == "0"){imageTwo=require("./everton.png")}
-    if(this.state.teamTwo=="8"&& this.state.screen == "0"){imageTwo=require("./leicester.png")}
-    if(this.state.teamTwo=="9"&& this.state.screen == "0"){imageTwo=require("./liverpool.jpeg")}
-    if(this.state.teamTwo=="10"&& this.state.screen == "0"){imageTwo=require("./city.png")}
-    if(this.state.teamTwo=="11"&& this.state.screen == "0"){imageTwo=require("./united.png")}
-    if(this.state.teamTwo=="12"&& this.state.screen == "0"){imageTwo=require("./newcastle.png")}
-    if(this.state.teamTwo=="13"&& this.state.screen == "0"){imageTwo=require("./norwich.png")}
-    if(this.state.teamTwo=="14"&& this.state.screen == "0"){imageTwo=require("./sheff.png")}
-    if(this.state.teamTwo=="15"&& this.state.screen == "0"){imageTwo=require("./southampton.png")}
-    if(this.state.teamTwo=="16"&& this.state.screen == "0"){imageTwo=require("./tottenham.jpeg")}
-    if(this.state.teamTwo=="17"&& this.state.screen == "0"){imageTwo=require("./watford.png")}
-    if(this.state.teamTwo=="18"&& this.state.screen == "0"){imageTwo=require("./westham.png")}
-    if(this.state.teamTwo=="19"&& this.state.screen == "0"){imageTwo=require("./wolves.png")}
+
 
     
     let input = ''
     if (this.state.screen == "0") {
         input = <label>
-            Pick your team: 
+            Choose the home team: 
                 <select value={this.state.teamName} onChange={this.handleSelect}>
-                    <option value="20"> Select a team </option>
-                    <option value="0"> Arsenal </option>
-                    <option value="1"> Aston Villa </option>
-                    <option value="2"> AFC Bournemouth </option>
-                    <option value="3"> Brighton and Hove Albion </option>
-                    <option value="4"> Burnley </option>
-                    <option value="5"> Chelsea </option>
-                    <option value="6"> Crystal Palace </option>
-                    <option value="7"> Everton </option>
-                    <option value="8"> Leicester City </option>
-                    <option value="9"> Liverpool FC</option>
-                    <option value="10"> Manchester City </option>
-                    <option value="11"> Manchester United </option>
-                    <option value="12"> Newcastle United  </option>
-                    <option value="13"> Norwich City </option>
-                    <option value="14"> Sheffield United </option>
-                    <option value="15"> Southampton </option>
-                    <option value="16"> Tottenham Hotspur </option>
-                    <option value="17"> Watford </option>
-                    <option value="18"> West Ham United </option>
-                    <option value="19"> Wolverhampton Wanderers </option>
+                    {this.state.leagueTeams.map((team) => <option key={team.value} value={team.value}> {team.teamName} </option>)}
                 </select>
         </label>
     }
      let inputTwo = ''
     if (this.state.screen == "0") {
         inputTwo = <label>
-            Pick the other team: 
-                <select onChange={this.handleOtherSelect} value={this.state.teamTwo}>                    
-                    <option value="20"> Select another team </option>
-                    <option value="0"> Arsenal </option>
-                    <option value="1"> Aston Villa </option>
-                    <option value="2"> AFC Bournemouth </option>
-                    <option value="3"> Brighton and Hove Albion </option>
-                    <option value="4"> Burnley </option>
-                    <option value="5"> Chelsea </option>
-                    <option value="6"> Crystal Palace </option>
-                    <option value="7"> Everton </option>
-                    <option value="8"> Leicester City </option>
-                    <option value="9">  Liverpool </option>
-                    <option value="10"> Manchester City </option>
-                    <option value="11"> Manchester United </option>
-                    <option value="12"> Newcastle United  </option>
-                    <option value="13"> Norwich City </option>
-                    <option value="14"> Sheffield United </option>
-                    <option value="15"> Southampton </option>
-                    <option value="16"> Tottenham Hotspur </option>
-                    <option value="17"> Watford </option>
-                    <option value="18"> West Ham United </option>
-                    <option value="19"> Wolverhampton Wanderers </option>
+            Choose the home team: 
+                <select value={this.state.teamTwo} onChange={this.handleOtherSelect}>
+                {this.state.leagueTeams.map((team) => <option key={team.value} value={team.value}> {team.teamName} </option>)}
                 </select>
         </label>
     }
-    console.log(this.state.teamListNames[this.state.teamName])
+   
+    
     
     let theHeader = ''
     if (this.state.screen == "0"){
         theHeader = 'Predictions, Predictions, Predictions.'
-    } else if(this.state.screen == "1") {   
+    } 
+    else if(this.state.screen == "1") {   
         theHeader = 'The Premier League Table.'
-    } else if(this.state.screen == "2") {
-        theHeader = 'Work in progress.'
-    } else if(this.state.screen == "3") {
-        theHeader = 'About';
-    } else if(this.state.screen == "4"){
+    } 
+    else if(this.state.screen == "2") {
+        theHeader = <h1>Serie A. <body style={{textAlign: "center"}}> <p/> Home -         Away </body> </h1>
+    } 
+    else if(this.state.screen == "3") {
+        theHeader = 'About'
+    } 
+    else if(this.state.screen == "4"){
         theHeader = 'Release Notes'
     }
     
@@ -625,8 +685,8 @@ const phantom = {
         table = <ReactBootStrap.Table striped bordered hover>
   <thead>
     <tr>
-      <th>Points</th>
       <th>Position</th>
+      <th>Team</th>
       <th>Wins</th>
       <th>Losses</th>
       <th>Ties</th>
@@ -642,7 +702,7 @@ const phantom = {
     
     let aboutText = ''
     if (this.state.screen == "3"){
-        aboutText = "This website predicts win-loss percentages between two teams based on live data. Other features include upcoming game predictions and a live table. Only premier league for now."
+        aboutText = "This website predicts win-loss percentages between two teams based on live data. Other features include upcoming game predictions and a live table. Only Premier League for now and Serie A for upcoming games for easy testing."
     }
     
     let releaseText = '   '
@@ -650,29 +710,41 @@ const phantom = {
         releaseText = <Release/>
     }
     
+    let randomText = this.upcomingGames()
+
+    
+    
+
 
 return (
     <div className="App" >
     <p/>
-    <button onClick={this.homePage} style={theCoolStyle}> <h1> Predictions, Inc. </h1> </button>
+    <button onClick={this.homePage} style={theCoolStyle}><img style={{height: 100}}
+      src="https://12r9bkcquoz2cfikc47m7moj-wpengine.netdna-ssl.com/wp-content/uploads/2019/12/X-Digital-Marketing-Experts-Share-Their-Marketing-Home-Run-of-2019.png"
+      alt=""
+      /></button>
     <p/>
     <button onClick={this.handleStandings}> Standings </button>
     <button onClick={this.handlePredictions}> Team Predictions </button>
-    <button onClick={this.handleMatches}> Upcoming Matches </button>
-    <p/>
+    <button onClick={this.handleMatches}> Matches </button>
+    <p/>   
     <h2> {theHeader} </h2>
+    
+    {this.displayMatch()}
     <p/>
     {table}
     {aboutText}
     {input}
     {releaseText}
     {inputTwo}
+    {this.yeet()}
             <p/>
-    <h2> {this.returnTeam()}&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;{this.returnTeamTwo()}</h2>
-    <img style={images} src={imageOne} alt=''/> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<img style={images} src={imageTwo} alt=''/>
+    <h3> {this.returnTeam()}&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;{this.returnTeamTwo()}</h3>
+    {this.returnImage()} &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;{this.returnImageTwo()}
             <p/>
             {text}
             <p/>
+                <body style={bodyStyle}> <b>{this.percent()}</b> {percentText} <b>{this.percentTwo()}</b></body>
         <body style={bodyStyle}> <b>{this.returnPosition()}</b> {positionText} <b>{this.returnPositionTwo()}</b></body>
         <body style={bodyStyle}> <b>{this.returnPoints()}</b> {pointText} <b>{this.returnPointsTwo()}</b></body>
         <body style={bodyStyle}> <b>{this.returnPlayed()}</b> {playedText} <b>{this.returnPlayedTwo()}</b></body>
@@ -681,7 +753,7 @@ return (
         <body style={bodyStyle}> <b>{this.returnDraws()}</b> {drawText} <b>{this.returnDrawsTwo()}</b></body>
         <body style={bodyStyle}> <b>{this.returngd()}</b> {gdText} <b>{this.returngdTwo()}</b></body>
         <body style={bodyStyle}> <b>{this.algorithm()}</b> {scoreText} <b>{this.algorithmTwo()}</b></body>
-        <body style={bodyStyle}> <b>{this.percent()}</b> {percentText} <b>{this.percentTwo()}</b></body>
+        
             <p/>
         {resetButton}
     <p/>
@@ -690,16 +762,14 @@ return (
             <button onClick={this.aboutPage}> About </button>
             <button onClick={this.releaseNotes}> Release Notes </button>
             </div>
-    </div>
+    
+ </div>
   );
 }
 
 }
 //app.js>
 
-const RenderRow = (props) =>{
- 
-}
 const container = document.createElement('div');
 document.body.appendChild(container);
 export default App;
