@@ -90,6 +90,9 @@ class App extends Component{
                       })
                   })
                 }
+                console.log("LEAGUETEAMS")
+                console.log(this.state.leagueTeams)
+                console.log(this.state.leagueTeams[1])
                 
             })
             
@@ -656,7 +659,7 @@ backgroundColor: "white"
         inputTwo = <label>
             Choose the home team: 
                 <select value={this.state.teamTwo} onChange={this.handleOtherSelect}>
-                {this.state.leagueTeams.map((team) => <option key={team.value} value={team.value}> {team.teamName} </option>)}
+                    {this.state.leagueTeams.map((team) => <option key={team.value} value={team.value}> {team.teamName} </option>)}
                 </select>
         </label>
     }
